@@ -28,7 +28,7 @@ const STARTER_BOOKS = [
     publisher: "Hodder & Stoughton",
     stock: 2,
     available: 2,
-    ebookUrl: "assets/ebooks/a-game-of-ghosts.pdf"
+    ebookUrl: "assets/ebooks/a-game-of-ghost.pdf"
   },
   {
     id: "book-2",
