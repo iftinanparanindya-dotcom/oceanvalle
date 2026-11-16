@@ -28,7 +28,7 @@ const STARTER_BOOKS = [
     publisher: "Hodder & Stoughton",
     stock: 2,
     available: 2,
-    ebookUrl: "assets/ebooks/a-game-of-ghosts.pdf"
+    ebookUrl: "https://raw.githubusercontent.com/iftinanparanindya-dotcom/oceanvalle/main/assets/ebooks/a-game-of-ghost.pdf"
   },
   {
     id: "book-2",
