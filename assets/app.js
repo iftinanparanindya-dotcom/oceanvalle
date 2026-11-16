@@ -1,7 +1,7 @@
 
 // ==========================================
 // OCEANVALLE LIBRARY
-// Sistem katalog, anggota, sirkulasi, password
+// Katalog, anggota, sirkulasi, dan admin
 // ==========================================
 
 const STORAGE = {
@@ -14,7 +14,8 @@ const STORAGE = {
 };
 
 // ==========================================
-// 10 KOLEKSI EBOOK OCEANVALLE
+// DATA 10 EBOOK OCEANVALLE
+// Lokasi PDF: assets/ebooks/
 // ==========================================
 
 const STARTER_BOOKS = [
@@ -27,7 +28,7 @@ const STARTER_BOOKS = [
     publisher: "Hodder & Stoughton",
     stock: 2,
     available: 2,
-    ebookUrl: "ebooks/a-game-of-ghosts.pdf"
+    ebookUrl: "assets/ebooks/a-game-of-ghosts.pdf"
   },
   {
     id: "book-2",
@@ -130,8 +131,9 @@ const STARTER_BOOKS = [
   }
 ];
 
+
 // ==========================================
-// FUNGSI PENYIMPANAN
+// FUNGSI PENYIMPANAN DATA
 // ==========================================
 
 function loadData(key, fallback) {
@@ -139,6 +141,7 @@ function loadData(key, fallback) {
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : fallback;
   } catch (error) {
+    console.error("Gagal membaca data:", error);
     return fallback;
   }
 }
@@ -164,24 +167,40 @@ function makeId(prefix) {
     Math.floor(Math.random() * 1000);
 }
 
-// ==========================================
-// INISIALISASI KATALOG
-// Mengganti katalog versi lama menjadi 10 ebook
-// ==========================================
 
-if (localStorage.getItem(STORAGE.catalogVersion) !== "2") {
-  saveData(STORAGE.books, STARTER_BOOKS);
-  localStorage.setItem(STORAGE.catalogVersion, "2");
-}
+// ==========================================
+// INISIALISASI DAN PEMBARUAN KATALOG
+// ==========================================
 
 let books = loadData(STORAGE.books, STARTER_BOOKS);
 let members = loadData(STORAGE.members, []);
 let loans = loadData(STORAGE.loans, []);
 
-// Pastikan data yang dibaca berbentuk array
 if (!Array.isArray(books)) books = STARTER_BOOKS;
 if (!Array.isArray(members)) members = [];
 if (!Array.isArray(loans)) loans = [];
+
+// Perbarui alamat PDF untuk 10 buku bawaan.
+// Data anggota dan peminjaman tidak dihapus.
+
+books = books.map(book => {
+  const starterBook = STARTER_BOOKS.find(
+    item => item.id === book.id
+  );
+
+  if (starterBook) {
+    return {
+      ...book,
+      ebookUrl: starterBook.ebookUrl
+    };
+  }
+
+  return book;
+});
+
+saveBooks();
+localStorage.setItem(STORAGE.catalogVersion, "3");
+
 
 // ==========================================
 // FUNGSI BANTUAN
@@ -201,11 +220,32 @@ function escapeHTML(value) {
 
 function todayString() {
   const date = new Date();
+
   const localDate = new Date(
     date.getTime() - date.getTimezoneOffset() * 60000
   );
+
   return localDate.toISOString().slice(0, 10);
 }
+
+// Menghasilkan alamat PDF yang mengikuti lokasi repository.
+// Berguna untuk GitHub Pages dengan alamat /nama-repository/.
+
+function getEbookUrl(path) {
+  if (!path) return "";
+
+  const cleanPath = String(path).trim();
+
+  if (/^https?:\/\//i.test(cleanPath)) {
+    return cleanPath;
+  }
+
+  return new URL(
+    cleanPath.replace(/^\/+/, ""),
+    window.location.href
+  ).href;
+}
+
 
 // ==========================================
 // NAVIGASI HALAMAN
@@ -224,6 +264,7 @@ function showPage(page) {
   };
 
   const target = document.getElementById(pageIds[page]);
+
   if (!target) return;
 
   if (page === "admin" && !requireLogin()) return;
@@ -237,39 +278,72 @@ function showPage(page) {
   window.scrollTo(0, 0);
 }
 
+
 // ==========================================
-// KARTU BUKU
+// TAMPILAN KARTU BUKU
 // ==========================================
 
 function bookCard(book) {
   const title = escapeHTML(book.title);
+  const author = escapeHTML(book.author);
+  const category = escapeHTML(book.category);
+  const year = escapeHTML(book.year || "-");
 
-  const ebookButton = book.ebookUrl
-    ? `<a href="${escapeHTML(book.ebookUrl)}" target="_blank" rel="noopener">Buka Ebook ↗</a>`
-    : `<span class="hint">File ebook belum ditambahkan</span>`;
+  let ebookButton = "";
+
+  if (book.ebookUrl) {
+    const pdfUrl = escapeHTML(getEbookUrl(book.ebookUrl));
+
+    ebookButton = `
+      <a
+        href="${pdfUrl}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="ebook-link"
+      >
+        Baca Ebook ↗
+      </a>
+    `;
+  } else {
+    ebookButton = `
+      <span class="hint">File ebook belum ditambahkan.</span>
+    `;
+  }
 
   return `
     <article class="book-card">
+
       <div class="book-cover">
         <span>${title}</span>
       </div>
-      <span class="category">${escapeHTML(book.category)}</span>
+
+      <span class="category">${category}</span>
+
       <h3>${title}</h3>
-      <p>Penulis: ${escapeHTML(book.author)}</p>
-      <p>Tahun: ${escapeHTML(book.year || "-")}</p>
+
+      <p>Penulis: ${author}</p>
+
+      <p>Tahun: ${year}</p>
+
       <p>Stok tersedia: ${Number(book.available) || 0}</p>
+
       ${ebookButton}
+
     </article>
   `;
 }
 
+
 // ==========================================
-// HALAMAN HOME DAN COLLECTION
+// HALAMAN HOME
 // ==========================================
 
 function renderHome() {
-  document.getElementById("homeBookCount").textContent = books.length;
-  document.getElementById("homeMemberCount").textContent = members.length;
+  document.getElementById("homeBookCount").textContent =
+    books.length;
+
+  document.getElementById("homeMemberCount").textContent =
+    members.length;
 
   document.getElementById("homeLoanCount").textContent =
     loans.filter(loan => loan.status === "Dipinjam").length;
@@ -278,8 +352,14 @@ function renderHome() {
     books.slice(0, 3).map(bookCard).join("");
 }
 
+
+// ==========================================
+// HALAMAN COLLECTION DAN PENCARIAN
+// ==========================================
+
 function renderCollection() {
   const searchInput = document.getElementById("searchBook");
+
   const keyword = searchInput.value.trim().toLowerCase();
 
   const filteredBooks = books.filter(book => {
@@ -299,35 +379,50 @@ function renderCollection() {
       : "<p>Buku tidak ditemukan.</p>";
 }
 
+
 // ==========================================
 // LOGIN ADMIN
 // ==========================================
 
-document.getElementById("loginForm").addEventListener("submit", function(event) {
-  event.preventDefault();
+document.getElementById("loginForm").addEventListener(
+  "submit",
+  function(event) {
+    event.preventDefault();
 
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value;
+    const username =
+      document.getElementById("username").value.trim();
 
-  const savedPassword =
-    localStorage.getItem(STORAGE.password) || "ocean123";
+    const password =
+      document.getElementById("password").value;
 
-  if (username === "admin" && password === savedPassword) {
-    localStorage.setItem(STORAGE.session, "active");
-    document.getElementById("loginMessage").textContent = "";
-    this.reset();
-    showPage("admin");
-  } else {
-    document.getElementById("loginMessage").textContent =
-      "Username atau password salah. Silakan coba lagi.";
+    const savedPassword =
+      localStorage.getItem(STORAGE.password) || "ocean123";
+
+    if (username === "admin" && password === savedPassword) {
+
+      localStorage.setItem(STORAGE.session, "active");
+
+      document.getElementById("loginMessage").textContent = "";
+
+      this.reset();
+
+      showPage("admin");
+
+    } else {
+
+      document.getElementById("loginMessage").textContent =
+        "Username atau password salah. Silakan coba lagi.";
+
+    }
   }
-});
+);
 
 function requireLogin() {
   if (localStorage.getItem(STORAGE.session) !== "active") {
     showPage("login");
     return false;
   }
+
   return true;
 }
 
@@ -336,6 +431,7 @@ function logout() {
   showPage("home");
 }
 
+
 // ==========================================
 // DASHBOARD ADMIN
 // ==========================================
@@ -343,8 +439,11 @@ function logout() {
 function renderDashboard() {
   if (!requireLogin()) return;
 
-  document.getElementById("statBooks").textContent = books.length;
-  document.getElementById("statMembers").textContent = members.length;
+  document.getElementById("statBooks").textContent =
+    books.length;
+
+  document.getElementById("statMembers").textContent =
+    members.length;
 
   document.getElementById("statLoans").textContent =
     loans.filter(loan => loan.status === "Dipinjam").length;
@@ -360,6 +459,11 @@ function renderDashboard() {
   renderLoans();
 }
 
+
+// ==========================================
+// TAB ADMIN
+// ==========================================
+
 function showAdminTab(tab, button) {
   if (!requireLogin()) return;
 
@@ -367,7 +471,11 @@ function showAdminTab(tab, button) {
     section.classList.add("hidden");
   });
 
-  document.getElementById(tab + "Tab").classList.remove("hidden");
+  const target = document.getElementById(tab + "Tab");
+
+  if (!target) return;
+
+  target.classList.remove("hidden");
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.remove("active");
@@ -381,78 +489,120 @@ function showAdminTab(tab, button) {
   }
 }
 
+
 // ==========================================
-// KELOLA BUKU
+// KELOLA DATA BUKU
 // ==========================================
 
 function renderAdminBooks() {
   document.getElementById("adminBooksTable").innerHTML =
     books.map(book => `
       <tr>
+
         <td>${escapeHTML(book.title)}</td>
+
         <td>${escapeHTML(book.author)}</td>
+
         <td>${escapeHTML(book.category)}</td>
-        <td>${Number(book.available)} / ${Number(book.stock)}</td>
+
         <td>
-          <button onclick="editBook('${book.id}')">Edit</button>
-          <button class="delete" onclick="deleteBook('${book.id}')">Hapus</button>
+          ${Number(book.available)} / ${Number(book.stock)}
         </td>
+
+        <td>
+          <button onclick="editBook('${book.id}')">
+            Edit
+          </button>
+
+          <button
+            class="delete"
+            onclick="deleteBook('${book.id}')">
+            Hapus
+          </button>
+        </td>
+
       </tr>
     `).join("");
 }
 
-document.getElementById("bookForm").addEventListener("submit", function(event) {
-  event.preventDefault();
-  if (!requireLogin()) return;
 
-  const id = document.getElementById("bookId").value;
-  const stock = Math.max(
-    0,
-    Number(document.getElementById("bookStock").value)
-  );
+// Simpan buku baru atau edit buku
 
-  const existing = books.find(book => String(book.id) === String(id));
+document.getElementById("bookForm").addEventListener(
+  "submit",
+  function(event) {
+    event.preventDefault();
 
-  const borrowed = existing
-    ? Number(existing.stock) - Number(existing.available)
-    : 0;
+    if (!requireLogin()) return;
 
-  if (stock < borrowed) {
-    alert("Stok tidak boleh lebih kecil dari jumlah buku yang sedang dipinjam.");
-    return;
-  }
+    const id = document.getElementById("bookId").value;
 
-  const bookData = {
-    id: id || makeId("book"),
-    title: document.getElementById("bookTitle").value.trim(),
-    author: document.getElementById("bookAuthor").value.trim(),
-    category: document.getElementById("bookCategory").value.trim(),
-    year: document.getElementById("bookYear").value,
-    publisher: document.getElementById("bookPublisher").value.trim(),
-    stock: stock,
-    available: stock - borrowed,
-    ebookUrl: existing ? existing.ebookUrl : ""
-  };
-
-  if (existing) {
-    books = books.map(book =>
-      String(book.id) === String(id) ? bookData : book
+    const stock = Math.max(
+      0,
+      Number(document.getElementById("bookStock").value)
     );
-  } else {
-    books.push(bookData);
+
+    const existing = books.find(
+      book => String(book.id) === String(id)
+    );
+
+    const borrowed = existing
+      ? Number(existing.stock) - Number(existing.available)
+      : 0;
+
+    if (stock < borrowed) {
+      alert(
+        "Stok tidak boleh lebih kecil dari jumlah buku yang sedang dipinjam."
+      );
+      return;
+    }
+
+    const bookData = {
+      id: id || makeId("book"),
+
+      title: document.getElementById("bookTitle").value.trim(),
+
+      author: document.getElementById("bookAuthor").value.trim(),
+
+      category: document.getElementById("bookCategory").value.trim(),
+
+      year: document.getElementById("bookYear").value,
+
+      publisher: document.getElementById("bookPublisher").value.trim(),
+
+      stock: stock,
+
+      available: stock - borrowed,
+
+      ebookUrl: existing ? existing.ebookUrl : ""
+    };
+
+    if (existing) {
+      books = books.map(book =>
+        String(book.id) === String(id) ? bookData : book
+      );
+    } else {
+      books.push(bookData);
+    }
+
+    saveBooks();
+
+    resetBookForm();
+
+    renderDashboard();
+    renderHome();
+    renderCollection();
+
+    alert("Data buku berhasil disimpan.");
   }
+);
 
-  saveBooks();
-  resetBookForm();
-  renderDashboard();
-  renderHome();
-  renderCollection();
-
-  alert("Data buku berhasil disimpan.");
-});
 
 function editBook(id) {
-  const book = books.find(item => String(item.id) === String(id));
+  const book = books.find(
+    item => String(item.id) === String(id)
+  );
+
   if (!book) return;
 
   document.getElementById("bookId").value = book.id;
@@ -460,11 +610,14 @@ function editBook(id) {
   document.getElementById("bookAuthor").value = book.author;
   document.getElementById("bookCategory").value = book.category;
   document.getElementById("bookYear").value = book.year || "";
-  document.getElementById("bookPublisher").value = book.publisher || "";
+  document.getElementById("bookPublisher").value =
+    book.publisher || "";
+
   document.getElementById("bookStock").value = book.stock;
 
   document.getElementById("bookTitle").focus();
 }
+
 
 function deleteBook(id) {
   const activeLoan = loans.some(loan =>
@@ -473,85 +626,126 @@ function deleteBook(id) {
   );
 
   if (activeLoan) {
-    alert("Buku masih memiliki peminjaman aktif dan tidak dapat dihapus.");
+    alert(
+      "Buku masih memiliki peminjaman aktif dan tidak dapat dihapus."
+    );
     return;
   }
 
   if (!confirm("Yakin ingin menghapus buku ini?")) return;
 
-  books = books.filter(book => String(book.id) !== String(id));
+  books = books.filter(
+    book => String(book.id) !== String(id)
+  );
 
   saveBooks();
+
   renderDashboard();
   renderHome();
   renderCollection();
 }
 
+
 function resetBookForm() {
   document.getElementById("bookForm").reset();
+
   document.getElementById("bookId").value = "";
+
   document.getElementById("bookStock").value = 2;
 }
 
+
 // ==========================================
-// KELOLA ANGGOTA
+// KELOLA DATA ANGGOTA
 // ==========================================
 
 function renderAdminMembers() {
   document.getElementById("adminMembersTable").innerHTML =
     members.map(member => `
       <tr>
+
         <td>${escapeHTML(member.name)}</td>
+
         <td>${escapeHTML(member.email || "-")}</td>
+
         <td>${escapeHTML(member.phone || "-")}</td>
+
         <td>
-          <button onclick="editMember('${member.id}')">Edit</button>
-          <button class="delete" onclick="deleteMember('${member.id}')">Hapus</button>
+          <button onclick="editMember('${member.id}')">
+            Edit
+          </button>
+
+          <button
+            class="delete"
+            onclick="deleteMember('${member.id}')">
+            Hapus
+          </button>
         </td>
+
       </tr>
     `).join("");
 }
 
-document.getElementById("memberForm").addEventListener("submit", function(event) {
-  event.preventDefault();
-  if (!requireLogin()) return;
 
-  const id = document.getElementById("memberId").value;
+document.getElementById("memberForm").addEventListener(
+  "submit",
+  function(event) {
+    event.preventDefault();
 
-  const memberData = {
-    id: id || makeId("member"),
-    name: document.getElementById("memberName").value.trim(),
-    email: document.getElementById("memberEmail").value.trim(),
-    phone: document.getElementById("memberPhone").value.trim()
-  };
+    if (!requireLogin()) return;
 
-  if (id) {
-    members = members.map(member =>
-      String(member.id) === String(id) ? memberData : member
-    );
-  } else {
-    members.push(memberData);
+    const id = document.getElementById("memberId").value;
+
+    const memberData = {
+      id: id || makeId("member"),
+
+      name: document.getElementById("memberName").value.trim(),
+
+      email: document.getElementById("memberEmail").value.trim(),
+
+      phone: document.getElementById("memberPhone").value.trim()
+    };
+
+    if (id) {
+      members = members.map(member =>
+        String(member.id) === String(id)
+          ? memberData
+          : member
+      );
+    } else {
+      members.push(memberData);
+    }
+
+    saveMembers();
+
+    resetMemberForm();
+
+    renderDashboard();
+    renderHome();
+
+    alert("Data anggota berhasil disimpan.");
   }
+);
 
-  saveMembers();
-  resetMemberForm();
-  renderDashboard();
-  renderHome();
-
-  alert("Data anggota berhasil disimpan.");
-});
 
 function editMember(id) {
-  const member = members.find(item => String(item.id) === String(id));
+  const member = members.find(
+    item => String(item.id) === String(id)
+  );
+
   if (!member) return;
 
   document.getElementById("memberId").value = member.id;
   document.getElementById("memberName").value = member.name;
-  document.getElementById("memberEmail").value = member.email || "";
-  document.getElementById("memberPhone").value = member.phone || "";
+  document.getElementById("memberEmail").value =
+    member.email || "";
+
+  document.getElementById("memberPhone").value =
+    member.phone || "";
 
   document.getElementById("memberName").focus();
 }
+
 
 function deleteMember(id) {
   const activeLoan = loans.some(loan =>
@@ -560,23 +754,31 @@ function deleteMember(id) {
   );
 
   if (activeLoan) {
-    alert("Anggota masih memiliki peminjaman aktif dan belum dapat dihapus.");
+    alert(
+      "Anggota masih memiliki peminjaman aktif dan belum dapat dihapus."
+    );
     return;
   }
 
   if (!confirm("Yakin ingin menghapus anggota ini?")) return;
 
-  members = members.filter(member => String(member.id) !== String(id));
+  members = members.filter(
+    member => String(member.id) !== String(id)
+  );
 
   saveMembers();
+
   renderDashboard();
   renderHome();
 }
 
+
 function resetMemberForm() {
   document.getElementById("memberForm").reset();
+
   document.getElementById("memberId").value = "";
 }
+
 
 // ==========================================
 // SIRKULASI PEMINJAMAN
@@ -588,6 +790,7 @@ function populateLoanOptions() {
 
   memberSelect.innerHTML =
     '<option value="">Pilih anggota</option>' +
+
     members.map(member => `
       <option value="${escapeHTML(member.id)}">
         ${escapeHTML(member.name)}
@@ -596,70 +799,104 @@ function populateLoanOptions() {
 
   bookSelect.innerHTML =
     '<option value="">Pilih buku</option>' +
-    books.filter(book => Number(book.available) > 0).map(book => `
-      <option value="${escapeHTML(book.id)}">
-        ${escapeHTML(book.title)} (tersedia: ${Number(book.available)})
-      </option>
-    `).join("");
+
+    books
+      .filter(book => Number(book.available) > 0)
+      .map(book => `
+        <option value="${escapeHTML(book.id)}">
+          ${escapeHTML(book.title)}
+          (tersedia: ${Number(book.available)})
+        </option>
+      `).join("");
 
   if (!document.getElementById("loanDate").value) {
     document.getElementById("loanDate").value = todayString();
   }
 }
 
-document.getElementById("loanForm").addEventListener("submit", function(event) {
-  event.preventDefault();
-  if (!requireLogin()) return;
 
-  const memberId = document.getElementById("loanMember").value;
-  const bookId = document.getElementById("loanBook").value;
-  const loanDate = document.getElementById("loanDate").value;
-  const dueDate = document.getElementById("dueDate").value;
+document.getElementById("loanForm").addEventListener(
+  "submit",
+  function(event) {
+    event.preventDefault();
 
-  const member = members.find(item => String(item.id) === String(memberId));
-  const book = books.find(item => String(item.id) === String(bookId));
+    if (!requireLogin()) return;
 
-  if (!member || !book) {
-    alert("Pilih anggota dan buku terlebih dahulu.");
-    return;
+    const memberId =
+      document.getElementById("loanMember").value;
+
+    const bookId =
+      document.getElementById("loanBook").value;
+
+    const loanDate =
+      document.getElementById("loanDate").value;
+
+    const dueDate =
+      document.getElementById("dueDate").value;
+
+    const member = members.find(
+      item => String(item.id) === String(memberId)
+    );
+
+    const book = books.find(
+      item => String(item.id) === String(bookId)
+    );
+
+    if (!member || !book) {
+      alert("Pilih anggota dan buku terlebih dahulu.");
+      return;
+    }
+
+    if (Number(book.available) < 1) {
+      alert("Stok buku tidak tersedia.");
+      return;
+    }
+
+    if (!loanDate || !dueDate || dueDate < loanDate) {
+      alert(
+        "Tanggal jatuh tempo harus sama dengan atau setelah tanggal pinjam."
+      );
+      return;
+    }
+
+    book.available = Number(book.available) - 1;
+
+    loans.push({
+      id: makeId("loan"),
+
+      memberId: member.id,
+
+      memberName: member.name,
+
+      bookId: book.id,
+
+      bookTitle: book.title,
+
+      loanDate: loanDate,
+
+      dueDate: dueDate,
+
+      returnDate: "",
+
+      status: "Dipinjam",
+
+      fine: 0
+    });
+
+    saveBooks();
+    saveLoans();
+
+    this.reset();
+
+    document.getElementById("loanDate").value = todayString();
+
+    renderDashboard();
+    renderHome();
+
+    alert("Peminjaman berhasil dicatat.");
   }
+);
 
-  if (Number(book.available) < 1) {
-    alert("Stok buku tidak tersedia.");
-    return;
-  }
-
-  if (!loanDate || !dueDate || dueDate < loanDate) {
-    alert("Tanggal jatuh tempo harus sama dengan atau setelah tanggal pinjam.");
-    return;
-  }
-
-  book.available = Number(book.available) - 1;
-
-  loans.push({
-    id: makeId("loan"),
-    memberId: member.id,
-    memberName: member.name,
-    bookId: book.id,
-    bookTitle: book.title,
-    loanDate: loanDate,
-    dueDate: dueDate,
-    returnDate: "",
-    status: "Dipinjam",
-    fine: 0
-  });
-
-  saveBooks();
-  saveLoans();
-
-  this.reset();
-  document.getElementById("loanDate").value = todayString();
-
-  renderDashboard();
-  renderHome();
-
-  alert("Peminjaman berhasil dicatat.");
-});
 
 // ==========================================
 // PENGEMBALIAN DAN DENDA
@@ -670,12 +907,14 @@ function isOverdue(loan) {
     todayString() > loan.dueDate;
 }
 
+
 function calculateFine(loan) {
   if (loan.status === "Dikembalikan") {
     return Number(loan.fine) || 0;
   }
 
   const today = new Date(todayString() + "T00:00:00");
+
   const due = new Date(loan.dueDate + "T00:00:00");
 
   const lateDays = Math.max(
@@ -686,12 +925,14 @@ function calculateFine(loan) {
   return lateDays * 2000;
 }
 
+
 function renderLoans() {
   const tbody = document.getElementById("adminLoansTable");
 
   if (loans.length === 0) {
     tbody.innerHTML =
       '<tr><td colspan="6">Belum ada data peminjaman.</td></tr>';
+
     return;
   }
 
@@ -700,39 +941,53 @@ function renderLoans() {
 
     const status = loan.status === "Dikembalikan"
       ? "Dikembalikan"
-      : isOverdue(loan) ? "Terlambat" : "Dipinjam";
+      : isOverdue(loan)
+        ? "Terlambat"
+        : "Dipinjam";
 
     return `
       <tr>
+
         <td>${escapeHTML(loan.memberName)}</td>
+
         <td>${escapeHTML(loan.bookTitle)}</td>
+
         <td>${escapeHTML(loan.loanDate)}</td>
+
         <td>${escapeHTML(loan.dueDate)}</td>
+
         <td>
           ${status}<br>
           Rp${fine.toLocaleString("id-ID")}
         </td>
+
         <td>
           ${
             loan.status === "Dipinjam"
-              ? `<button onclick="returnBook('${loan.id}')">Kembalikan</button>`
+              ? `<button onclick="returnBook('${loan.id}')">
+                   Kembalikan
+                 </button>`
               : "Selesai"
           }
         </td>
+
       </tr>
     `;
   }).join("");
 }
 
+
 function returnBook(loanId) {
-  const loan = loans.find(item => String(item.id) === String(loanId));
+  const loan = loans.find(
+    item => String(item.id) === String(loanId)
+  );
 
   if (!loan || loan.status !== "Dipinjam") return;
 
   if (!confirm("Proses pengembalian buku ini?")) return;
 
-  const book = books.find(item =>
-    String(item.id) === String(loan.bookId)
+  const book = books.find(
+    item => String(item.id) === String(loan.bookId)
   );
 
   if (book) {
@@ -742,9 +997,10 @@ function returnBook(loanId) {
     );
   }
 
-  // Hitung denda sebelum status berubah
   loan.fine = calculateFine(loan);
+
   loan.returnDate = todayString();
+
   loan.status = "Dikembalikan";
 
   saveBooks();
@@ -759,63 +1015,81 @@ function returnBook(loanId) {
   );
 }
 
+
 // ==========================================
-// FITUR GANTI PASSWORD ADMIN
+// GANTI PASSWORD ADMIN
 // ==========================================
 
-document.getElementById("passwordForm").addEventListener("submit", function(event) {
-  event.preventDefault();
+document.getElementById("passwordForm").addEventListener(
+  "submit",
+  function(event) {
+    event.preventDefault();
 
-  if (!requireLogin()) return;
+    if (!requireLogin()) return;
 
-  const oldPassword = document.getElementById("oldPassword").value;
-  const newPassword = document.getElementById("newPassword").value;
-  const confirmPassword = document.getElementById("confirmPassword").value;
-  const message = document.getElementById("passwordMessage");
+    const oldPassword =
+      document.getElementById("oldPassword").value;
 
-  const savedPassword =
-    localStorage.getItem(STORAGE.password) || "ocean123";
+    const newPassword =
+      document.getElementById("newPassword").value;
 
-  message.classList.remove("success");
+    const confirmPassword =
+      document.getElementById("confirmPassword").value;
 
-  // Periksa password lama
-  if (oldPassword !== savedPassword) {
-    message.textContent = "Password lama yang kamu masukkan salah.";
-    return;
+    const message =
+      document.getElementById("passwordMessage");
+
+    const savedPassword =
+      localStorage.getItem(STORAGE.password) || "ocean123";
+
+    message.classList.remove("success");
+
+    if (oldPassword !== savedPassword) {
+      message.textContent =
+        "Password lama yang kamu masukkan salah.";
+
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      message.textContent =
+        "Password baru minimal 6 karakter.";
+
+      return;
+    }
+
+    if (newPassword === oldPassword) {
+      message.textContent =
+        "Password baru harus berbeda dari password lama.";
+
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      message.textContent =
+        "Konfirmasi password baru tidak cocok.";
+
+      return;
+    }
+
+    localStorage.setItem(STORAGE.password, newPassword);
+
+    this.reset();
+
+    message.textContent =
+      "Password berhasil diganti. Gunakan password baru saat login berikutnya.";
+
+    message.classList.add("success");
   }
+);
 
-  // Periksa panjang password baru
-  if (newPassword.length < 6) {
-    message.textContent = "Password baru minimal 6 karakter.";
-    return;
-  }
-
-  // Password baru tidak boleh sama dengan password lama
-  if (newPassword === oldPassword) {
-    message.textContent = "Password baru harus berbeda dari password lama.";
-    return;
-  }
-
-  // Periksa konfirmasi password
-  if (newPassword !== confirmPassword) {
-    message.textContent = "Konfirmasi password baru tidak cocok.";
-    return;
-  }
-
-  // Simpan password baru
-  localStorage.setItem(STORAGE.password, newPassword);
-
-  this.reset();
-
-  message.textContent = "Password berhasil diganti. Gunakan password baru saat login berikutnya.";
-  message.classList.add("success");
-});
 
 // ==========================================
 // MENJALANKAN WEBSITE
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", function() {
+
   renderHome();
 
   if (localStorage.getItem(STORAGE.session) === "active") {
@@ -823,4 +1097,5 @@ document.addEventListener("DOMContentLoaded", function() {
   } else {
     showPage("home");
   }
+
 });
