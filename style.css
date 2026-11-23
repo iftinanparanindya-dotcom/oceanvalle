@@ -12,7 +12,6 @@
   --line: #E6E0D5;
   --red: #A4473D;
   --green: #557C65;
-  --orange: #F0A04B;
 }
 
 * { box-sizing: border-box; }
@@ -417,22 +416,6 @@ label {
 
 .admin-tab h2 { margin-top: 8px; }
 
-.admin-section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 15px;
-}
-
-.admin-section-heading h2 { margin: 8px 0; }
-
-.print-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -474,50 +457,16 @@ th {
 
 td button {
   border: 0;
-  padding: 7px 10px;
+  background: var(--yellow);
+  color: #D97706;
+  padding: 7px 9px;
   border-radius: 3px;
   margin: 2px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* TOMBOL EDIT: BACKGROUND COKELAT, TULISAN ORANYE */
-td button.edit-btn {
-  background: var(--brown-dark);
-  color: var(--orange);
-}
-
-td button.edit-btn:hover {
-  background: var(--brown);
-  color: #FFC078;
-}
-
-/* TOMBOL CETAK BARCODE DAN KARTU */
-td button.print-btn {
-  background: var(--seafoam);
-  color: var(--brown-dark);
-}
-
-td button.print-btn:hover {
-  background: #A9D0CB;
 }
 
 td button.delete {
   background: #F3D9D5;
   color: var(--red);
-}
-
-.barcode-code {
-  display: inline-block;
-  padding: 5px 7px;
-  background: #F7F5EF;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  color: var(--brown-dark);
-  font-family: monospace;
-  font-size: 11px;
-  white-space: nowrap;
 }
 
 .password-panel {
@@ -549,6 +498,79 @@ footer {
 .footer-brand .brand-mark { background: var(--yellow); }
 footer p { font-size: 11px; color: #E8DED1; }
 
+/* FITUR CETAK */
+
+.print-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.barcode-box {
+  padding: 10px;
+  background: white;
+  border: 1px solid var(--line);
+  display: inline-block;
+  text-align: center;
+}
+
+.barcode-box svg {
+  max-width: 100%;
+}
+
+.barcode-box p {
+  font-size: 11px;
+  margin: 5px 0;
+}
+
+.member-card {
+  width: 340px;
+  min-height: 210px;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--seafoam);
+  border: 2px solid var(--brown);
+  color: var(--brown-dark);
+  margin: 15px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.member-card h3 {
+  margin: 5px 0;
+  font-size: 19px;
+}
+
+.member-card .card-logo {
+  font-family: 'Playfair Display';
+  font-size: 13px;
+  letter-spacing: 2px;
+  font-weight: bold;
+}
+
+.member-card .card-number {
+  font-size: 11px;
+  margin-top: 15px;
+}
+
+.member-card .card-name {
+  font-weight: bold;
+  font-size: 17px;
+  margin-top: 12px;
+}
+
+.member-card .card-footer {
+  font-size: 9px;
+  letter-spacing: 2px;
+  margin-top: 15px;
+}
+
+.print-card-btn {
+  background: var(--seafoam);
+  color: var(--brown-dark);
+}
+
 @media (max-width: 800px) {
   .hero { grid-template-columns: 1fr; padding: 35px 8%; }
   .hero-art { min-height: 260px; }
@@ -578,9 +600,47 @@ footer p { font-size: 11px; color: #E8DED1; }
   .form-grid { grid-template-columns: 1fr; }
   .admin-stats { grid-template-columns: 1fr 1fr; }
   .section-heading, .admin-heading { align-items: flex-start; gap: 12px; }
-  .admin-section-heading { align-items: flex-start; flex-direction: column; }
-  .print-actions { width: 100%; }
-  .print-actions button { flex: 1; }
   .page-banner h1 { font-size: 38px; }
   footer { flex-direction: column; align-items: flex-start; }
+}
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .topbar, footer, nav, .admin-tabs,
+  .print-actions, button, .no-print {
+    display: none !important;
+  }
+
+  .page, .admin-tab {
+    display: block !important;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  #adminPage {
+    width: 100%;
+    margin: 0;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  table {
+    min-width: 0;
+  }
+
+  th, td {
+    font-size: 10px;
+    padding: 8px;
+  }
+
+  .member-card {
+    break-inside: avoid;
+  }
 }
