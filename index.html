@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -7,17 +6,9 @@
   <meta name="description" content="Oceanvalle Digital Library - Explore stories and knowledge.">
   <title>Oceanvalle Library</title>
 
-  <link rel="stylesheet" href="./style.css"
-    onerror="this.onerror=null;this.href='./assets/style.css';">
+  <link rel="stylesheet" href="./assets/style.css">
 
-  <script>
-    window.addEventListener("DOMContentLoaded", function () {
-      const css = document.querySelector('link[rel="stylesheet"]');
-      if (!css.sheet) {
-        console.error("Oceanvalle CSS gagal dimuat. Periksa lokasi style.css.");
-      }
-    });
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
 
@@ -146,10 +137,25 @@
     </div>
 
     <div class="admin-stats">
-      <div class="stat-card"><span>Total Judul</span><strong id="statBooks">0</strong></div>
-      <div class="stat-card"><span>Total Anggota</span><strong id="statMembers">0</strong></div>
-      <div class="stat-card"><span>Sedang Dipinjam</span><strong id="statLoans">0</strong></div>
-      <div class="stat-card"><span>Terlambat</span><strong id="statOverdue">0</strong></div>
+      <div class="stat-card">
+        <span>Total Judul</span>
+        <strong id="statBooks">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Total Anggota</span>
+        <strong id="statMembers">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Sedang Dipinjam</span>
+        <strong id="statLoans">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Terlambat</span>
+        <strong id="statOverdue">0</strong>
+      </div>
     </div>
 
     <div class="admin-tabs">
@@ -159,19 +165,51 @@
       <button class="tab-btn" onclick="showAdminTab('settings', this)">Pengaturan</button>
     </div>
 
+    <!-- DATA BUKU -->
+
     <section id="booksTab" class="admin-tab">
       <p class="eyebrow">CATALOG MANAGEMENT</p>
-      <h2>Data Buku</h2>
+
+      <div class="admin-section-heading">
+        <h2>Data Buku</h2>
+
+        <button class="primary-btn" type="button" onclick="printBookCatalog()">
+          Cetak Katalog
+        </button>
+      </div>
 
       <form id="bookForm" class="panel form-grid">
         <input type="hidden" id="bookId">
 
-        <div><label for="bookTitle">Judul Buku</label><input id="bookTitle" required></div>
-        <div><label for="bookAuthor">Penulis</label><input id="bookAuthor" required></div>
-        <div><label for="bookCategory">Kategori</label><input id="bookCategory" required></div>
-        <div><label for="bookYear">Tahun Terbit</label><input id="bookYear" type="number" min="1000" max="2100"></div>
-        <div><label for="bookPublisher">Penerbit</label><input id="bookPublisher"></div>
-        <div><label for="bookStock">Jumlah Eksemplar</label><input id="bookStock" type="number" min="0" value="2" required></div>
+        <div>
+          <label for="bookTitle">Judul Buku</label>
+          <input id="bookTitle" required>
+        </div>
+
+        <div>
+          <label for="bookAuthor">Penulis</label>
+          <input id="bookAuthor" required>
+        </div>
+
+        <div>
+          <label for="bookCategory">Kategori</label>
+          <input id="bookCategory" required>
+        </div>
+
+        <div>
+          <label for="bookYear">Tahun Terbit</label>
+          <input id="bookYear" type="number" min="1000" max="2100">
+        </div>
+
+        <div>
+          <label for="bookPublisher">Penerbit</label>
+          <input id="bookPublisher">
+        </div>
+
+        <div>
+          <label for="bookStock">Jumlah Eksemplar</label>
+          <input id="bookStock" type="number" min="0" value="2" required>
+        </div>
 
         <div class="form-actions">
           <button class="primary-btn" type="submit">Simpan Buku</button>
@@ -181,11 +219,23 @@
 
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Judul</th><th>Penulis</th><th>Kategori</th><th>Stok</th><th>Aksi</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Judul</th>
+              <th>Penulis</th>
+              <th>Kategori</th>
+              <th>Barcode</th>
+              <th>Stok</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+
           <tbody id="adminBooksTable"></tbody>
         </table>
       </div>
     </section>
+
+    <!-- DATA ANGGOTA -->
 
     <section id="membersTab" class="admin-tab hidden">
       <p class="eyebrow">MEMBERSHIP MANAGEMENT</p>
@@ -193,9 +243,22 @@
 
       <form id="memberForm" class="panel form-grid">
         <input type="hidden" id="memberId">
-        <div><label for="memberName">Nama Anggota</label><input id="memberName" required></div>
-        <div><label for="memberEmail">Email</label><input id="memberEmail" type="email"></div>
-        <div><label for="memberPhone">Nomor Telepon</label><input id="memberPhone"></div>
+
+        <div>
+          <label for="memberName">Nama Anggota</label>
+          <input id="memberName" required>
+        </div>
+
+        <div>
+          <label for="memberEmail">Email</label>
+          <input id="memberEmail" type="email">
+        </div>
+
+        <div>
+          <label for="memberPhone">Nomor Telepon</label>
+          <input id="memberPhone">
+        </div>
+
         <div class="form-actions">
           <button class="primary-btn" type="submit">Simpan Anggota</button>
           <button class="outline-btn" type="button" onclick="resetMemberForm()">Batal</button>
@@ -204,21 +267,48 @@
 
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Nama</th><th>Email</th><th>Telepon</th><th>Aksi</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Email</th>
+              <th>Telepon</th>
+              <th>Barcode</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+
           <tbody id="adminMembersTable"></tbody>
         </table>
       </div>
     </section>
+
+    <!-- SIRKULASI -->
 
     <section id="circulationTab" class="admin-tab hidden">
       <p class="eyebrow">LOAN & RETURN</p>
       <h2>Sirkulasi Peminjaman</h2>
 
       <form id="loanForm" class="panel form-grid">
-        <div><label for="loanMember">Anggota</label><select id="loanMember" required></select></div>
-        <div><label for="loanBook">Buku</label><select id="loanBook" required></select></div>
-        <div><label for="loanDate">Tanggal Pinjam</label><input id="loanDate" type="date" required></div>
-        <div><label for="dueDate">Tanggal Jatuh Tempo</label><input id="dueDate" type="date" required></div>
+        <div>
+          <label for="loanMember">Anggota</label>
+          <select id="loanMember" required></select>
+        </div>
+
+        <div>
+          <label for="loanBook">Buku</label>
+          <select id="loanBook" required></select>
+        </div>
+
+        <div>
+          <label for="loanDate">Tanggal Pinjam</label>
+          <input id="loanDate" type="date" required>
+        </div>
+
+        <div>
+          <label for="dueDate">Tanggal Jatuh Tempo</label>
+          <input id="dueDate" type="date" required>
+        </div>
+
         <div class="form-actions">
           <button class="primary-btn" type="submit">Proses Peminjaman</button>
         </div>
@@ -228,11 +318,23 @@
 
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Anggota</th><th>Buku</th><th>Tgl Pinjam</th><th>Jatuh Tempo</th><th>Status / Denda</th><th>Aksi</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Anggota</th>
+              <th>Buku</th>
+              <th>Tgl Pinjam</th>
+              <th>Jatuh Tempo</th>
+              <th>Status / Denda</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+
           <tbody id="adminLoansTable"></tbody>
         </table>
       </div>
     </section>
+
+    <!-- PENGATURAN -->
 
     <section id="settingsTab" class="admin-tab hidden">
       <p class="eyebrow">ACCOUNT SETTINGS</p>
@@ -240,7 +342,10 @@
 
       <div class="panel password-panel">
         <h3>Ganti Password</h3>
-        <p class="hint">Gunakan fitur ini untuk mengubah password akun administrator Oceanvalle.</p>
+
+        <p class="hint">
+          Gunakan fitur ini untuk mengubah password akun administrator Oceanvalle.
+        </p>
 
         <form id="passwordForm">
           <label for="oldPassword">Password Lama</label>
@@ -253,6 +358,7 @@
           <input id="confirmPassword" type="password" required minlength="6" placeholder="Ulangi password baru">
 
           <button class="primary-btn" type="submit">Simpan Password Baru</button>
+
           <p id="passwordMessage" class="message"></p>
         </form>
       </div>
@@ -271,11 +377,11 @@
     <span class="brand-mark">O</span>
     <span>OCEANVALLE<small>LIBRARY & KNOWLEDGE</small></span>
   </div>
+
   <p>© 2026 Oceanvalle Library. Read · Learn · Grow.</p>
 </footer>
 
-<script src="./app.js"
-  onerror="this.onerror=null;this.src='./assets/app.js';"></script>
+<script src="./assets/app.js"></script>
 
 </body>
 </html>
