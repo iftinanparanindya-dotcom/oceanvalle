@@ -1,6 +1,7 @@
 // ==========================================
 // OCEANVALLE LIBRARY
-// Katalog, anggota, sirkulasi, dan admin
+// Katalog, anggota, sirkulasi, admin,
+// cetak katalog, barcode buku, kartu anggota
 // ==========================================
 
 const STORAGE = {
@@ -14,7 +15,6 @@ const STORAGE = {
 
 // ==========================================
 // DATA 10 EBOOK OCEANVALLE
-// Lokasi PDF: assets/ebooks/
 // ==========================================
 
 const STARTER_BOOKS = [
@@ -168,7 +168,7 @@ function makeId(prefix) {
 
 
 // ==========================================
-// INISIALISASI DAN PEMBARUAN KATALOG
+// INISIALISASI DATA
 // ==========================================
 
 let books = loadData(STORAGE.books, STARTER_BOOKS);
@@ -178,9 +178,6 @@ let loans = loadData(STORAGE.loans, []);
 if (!Array.isArray(books)) books = STARTER_BOOKS;
 if (!Array.isArray(members)) members = [];
 if (!Array.isArray(loans)) loans = [];
-
-// Perbarui alamat PDF untuk 10 buku bawaan.
-// Data anggota dan peminjaman tidak dihapus.
 
 books = books.map(book => {
   const starterBook = STARTER_BOOKS.find(
@@ -197,8 +194,57 @@ books = books.map(book => {
   return book;
 });
 
+
+// ==========================================
+// BARCODE OTOMATIS
+// ==========================================
+
+function createBarcode(type, id) {
+  const cleanId = String(id)
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toUpperCase();
+
+  return type + "-" + cleanId;
+}
+
+function ensureBarcodes() {
+  let booksChanged = false;
+  let membersChanged = false;
+
+  books = books.map(book => {
+    if (!book.barcode) {
+      booksChanged = true;
+
+      return {
+        ...book,
+        barcode: createBarcode("OVB", book.id)
+      };
+    }
+
+    return book;
+  });
+
+  members = members.map(member => {
+    if (!member.barcode) {
+      membersChanged = true;
+
+      return {
+        ...member,
+        barcode: createBarcode("OVM", member.id)
+      };
+    }
+
+    return member;
+  });
+
+  if (booksChanged) saveBooks();
+  if (membersChanged) saveMembers();
+}
+
+ensureBarcodes();
+
 saveBooks();
-localStorage.setItem(STORAGE.catalogVersion, "3");
+localStorage.setItem(STORAGE.catalogVersion, "4");
 
 
 // ==========================================
@@ -227,9 +273,6 @@ function todayString() {
   return localDate.toISOString().slice(0, 10);
 }
 
-// Menghasilkan alamat PDF yang mengikuti lokasi repository.
-// Berguna untuk GitHub Pages dengan alamat /nama-repository/.
-
 function getEbookUrl(path) {
   if (!path) return "";
 
@@ -243,6 +286,392 @@ function getEbookUrl(path) {
     cleanPath.replace(/^\/+/, ""),
     window.location.href
   ).href;
+}
+
+
+// ==========================================
+// FUNGSI CETAK
+// ==========================================
+
+function openPrintWindow(title, content, withBarcode = false) {
+  const printWindow = window.open("", "_blank");
+
+  if (!printWindow) {
+    alert("Jendela cetak diblokir browser. Izinkan pop-up untuk website ini.");
+    return;
+  }
+
+  const barcodeScript = withBarcode
+    ? `
+      <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
+      <script>
+        window.addEventListener("load", function () {
+          const barcodes = document.querySelectorAll("[data-barcode]");
+
+          barcodes.forEach(function(element) {
+            const value = element.getAttribute("data-barcode");
+
+            if (window.JsBarcode) {
+              JsBarcode(element, value, {
+                format: "CODE128",
+                lineColor: "#222222",
+                width: 1.7,
+                height: 48,
+                displayValue: true,
+                fontSize: 11,
+                margin: 4
+              });
+            }
+          });
+
+          setTimeout(function() {
+            window.print();
+          }, 500);
+        });
+      <\/script>
+    `
+    : `
+      <script>
+        window.addEventListener("load", function() {
+          window.print();
+        });
+      <\/script>
+    `;
+
+  printWindow.document.open();
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${escapeHTML(title)}</title>
+
+      <style>
+        * {
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: Arial, sans-serif;
+          color: #302D29;
+          margin: 30px;
+        }
+
+        h1, h2, p {
+          margin-top: 0;
+        }
+
+        .print-header {
+          text-align: center;
+          margin-bottom: 28px;
+          border-bottom: 2px solid #775537;
+          padding-bottom: 15px;
+        }
+
+        .print-header h1 {
+          color: #503923;
+          margin-bottom: 5px;
+          letter-spacing: 2px;
+        }
+
+        .print-header p {
+          color: #77736D;
+          font-size: 12px;
+          margin: 0;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+        }
+
+        th, td {
+          border: 1px solid #D8D1C5;
+          padding: 9px;
+          text-align: left;
+          font-size: 11px;
+        }
+
+        th {
+          background: #EEECE5;
+          color: #503923;
+        }
+
+        .print-footer {
+          margin-top: 25px;
+          font-size: 10px;
+          color: #77736D;
+          text-align: center;
+        }
+
+        .barcode-page {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 80vh;
+        }
+
+        .barcode-card {
+          width: 350px;
+          padding: 28px;
+          border: 1px solid #D8D1C5;
+          text-align: center;
+          border-radius: 8px;
+        }
+
+        .barcode-card h2 {
+          color: #503923;
+          margin-bottom: 8px;
+        }
+
+        .barcode-card p {
+          font-size: 12px;
+          margin: 6px 0;
+        }
+
+        .barcode-card svg {
+          max-width: 100%;
+          height: auto;
+          margin-top: 15px;
+        }
+
+        .member-card {
+          width: 350px;
+          min-height: 220px;
+          padding: 22px;
+          border: 2px solid #775537;
+          border-radius: 12px;
+          background: #F7F5EF;
+          position: relative;
+        }
+
+        .member-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px solid #D8D1C5;
+          padding-bottom: 12px;
+          margin-bottom: 15px;
+        }
+
+        .member-card-header strong {
+          color: #503923;
+          letter-spacing: 1.5px;
+          font-size: 15px;
+        }
+
+        .member-card-header span {
+          color: #775537;
+          font-size: 9px;
+        }
+
+        .member-name {
+          font-size: 18px;
+          font-weight: bold;
+          color: #503923;
+          margin-bottom: 10px;
+        }
+
+        .member-detail {
+          font-size: 10px;
+          margin: 5px 0;
+        }
+
+        .member-card svg {
+          width: 100%;
+          max-height: 55px;
+          margin-top: 12px;
+        }
+
+        @page {
+          size: A4;
+          margin: 15mm;
+        }
+
+        @media print {
+          body {
+            margin: 0;
+          }
+
+          .barcode-page {
+            min-height: auto;
+          }
+
+          .barcode-card {
+            break-inside: avoid;
+          }
+
+          .member-card {
+            break-inside: avoid;
+          }
+        }
+      </style>
+    </head>
+
+    <body>
+      ${content}
+      ${barcodeScript}
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+}
+
+
+// ==========================================
+// CETAK KATALOG BUKU
+// ==========================================
+
+function printBookCatalog() {
+  if (!requireLogin()) return;
+
+  const rows = books.map((book, index) => `
+    <tr>
+      <td>${index + 1}</td>
+      <td>${escapeHTML(book.title)}</td>
+      <td>${escapeHTML(book.author)}</td>
+      <td>${escapeHTML(book.category)}</td>
+      <td>${escapeHTML(book.year || "-")}</td>
+      <td>${escapeHTML(book.publisher || "-")}</td>
+      <td>${Number(book.stock) || 0}</td>
+      <td>${Number(book.available) || 0}</td>
+    </tr>
+  `).join("");
+
+  const content = `
+    <div class="print-header">
+      <h1>OCEANVALLE LIBRARY</h1>
+      <p>DAFTAR KATALOG BUKU</p>
+      <p>Dicetak pada ${escapeHTML(todayString())}</p>
+    </div>
+
+    <p>Total koleksi: <strong>${books.length} judul buku</strong></p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>Judul Buku</th>
+          <th>Penulis</th>
+          <th>Kategori</th>
+          <th>Tahun</th>
+          <th>Penerbit</th>
+          <th>Stok</th>
+          <th>Tersedia</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${rows || '<tr><td colspan="8">Belum ada data buku.</td></tr>'}
+      </tbody>
+    </table>
+
+    <div class="print-footer">
+      Oceanvalle Library · Read · Learn · Grow
+    </div>
+  `;
+
+  openPrintWindow("Katalog Buku Oceanvalle", content);
+}
+
+
+// ==========================================
+// CETAK BARCODE BUKU
+// ==========================================
+
+function printBookBarcode(bookId) {
+  if (!requireLogin()) return;
+
+  const book = books.find(
+    item => String(item.id) === String(bookId)
+  );
+
+  if (!book) {
+    alert("Data buku tidak ditemukan.");
+    return;
+  }
+
+  const content = `
+    <div class="barcode-page">
+      <div class="barcode-card">
+        <h2>OCEANVALLE LIBRARY</h2>
+        <p>BOOK BARCODE</p>
+
+        <h3>${escapeHTML(book.title)}</h3>
+        <p>Penulis: ${escapeHTML(book.author)}</p>
+        <p>Kategori: ${escapeHTML(book.category)}</p>
+
+        <svg data-barcode="${escapeHTML(book.barcode)}"></svg>
+
+        <p>${escapeHTML(book.barcode)}</p>
+      </div>
+    </div>
+  `;
+
+  openPrintWindow(
+    "Barcode " + book.title,
+    content,
+    true
+  );
+}
+
+
+// ==========================================
+// CETAK KARTU ANGGOTA
+// ==========================================
+
+function printMemberCard(memberId) {
+  if (!requireLogin()) return;
+
+  const member = members.find(
+    item => String(item.id) === String(memberId)
+  );
+
+  if (!member) {
+    alert("Data anggota tidak ditemukan.");
+    return;
+  }
+
+  const content = `
+    <div class="barcode-page">
+      <div class="member-card">
+
+        <div class="member-card-header">
+          <strong>OCEANVALLE</strong>
+          <span>LIBRARY MEMBERSHIP CARD</span>
+        </div>
+
+        <div class="member-name">
+          ${escapeHTML(member.name)}
+        </div>
+
+        <p class="member-detail">
+          ID Anggota: ${escapeHTML(member.id)}
+        </p>
+
+        <p class="member-detail">
+          Email: ${escapeHTML(member.email || "-")}
+        </p>
+
+        <p class="member-detail">
+          Telepon: ${escapeHTML(member.phone || "-")}
+        </p>
+
+        <svg data-barcode="${escapeHTML(member.barcode)}"></svg>
+
+      </div>
+    </div>
+  `;
+
+  openPrintWindow(
+    "Kartu Anggota " + member.name,
+    content,
+    true
+  );
 }
 
 
@@ -398,7 +827,6 @@ document.getElementById("loginForm").addEventListener(
       localStorage.getItem(STORAGE.password) || "ocean123";
 
     if (username === "admin" && password === savedPassword) {
-
       localStorage.setItem(STORAGE.session, "active");
 
       document.getElementById("loginMessage").textContent = "";
@@ -406,12 +834,9 @@ document.getElementById("loginForm").addEventListener(
       this.reset();
 
       showPage("admin");
-
     } else {
-
       document.getElementById("loginMessage").textContent =
         "Username atau password salah. Silakan coba lagi.";
-
     }
   }
 );
@@ -437,6 +862,8 @@ function logout() {
 
 function renderDashboard() {
   if (!requireLogin()) return;
+
+  ensureBarcodes();
 
   document.getElementById("statBooks").textContent =
     books.length;
@@ -494,6 +921,8 @@ function showAdminTab(tab, button) {
 // ==========================================
 
 function renderAdminBooks() {
+  ensureBarcodes();
+
   document.getElementById("adminBooksTable").innerHTML =
     books.map(book => `
       <tr>
@@ -505,17 +934,26 @@ function renderAdminBooks() {
         <td>${escapeHTML(book.category)}</td>
 
         <td>
+          <span class="barcode-code">${escapeHTML(book.barcode)}</span>
+        </td>
+
+        <td>
           ${Number(book.available)} / ${Number(book.stock)}
         </td>
 
         <td>
-          <button onclick="editBook('${book.id}')">
+          <button onclick="editBook('${escapeHTML(book.id)}')">
             Edit
           </button>
 
           <button
+            onclick="printBookBarcode('${escapeHTML(book.id)}')">
+            Cetak Barcode
+          </button>
+
+          <button
             class="delete"
-            onclick="deleteBook('${book.id}')">
+            onclick="deleteBook('${escapeHTML(book.id)}')">
             Hapus
           </button>
         </td>
@@ -525,7 +963,9 @@ function renderAdminBooks() {
 }
 
 
-// Simpan buku baru atau edit buku
+// ==========================================
+// SIMPAN BUKU BARU ATAU EDIT BUKU
+// ==========================================
 
 document.getElementById("bookForm").addEventListener(
   "submit",
@@ -556,8 +996,10 @@ document.getElementById("bookForm").addEventListener(
       return;
     }
 
+    const bookId = id || makeId("book");
+
     const bookData = {
-      id: id || makeId("book"),
+      id: bookId,
 
       title: document.getElementById("bookTitle").value.trim(),
 
@@ -573,7 +1015,11 @@ document.getElementById("bookForm").addEventListener(
 
       available: stock - borrowed,
 
-      ebookUrl: existing ? existing.ebookUrl : ""
+      ebookUrl: existing ? existing.ebookUrl : "",
+
+      barcode: existing
+        ? existing.barcode
+        : createBarcode("OVB", bookId)
     };
 
     if (existing) {
@@ -659,6 +1105,8 @@ function resetBookForm() {
 // ==========================================
 
 function renderAdminMembers() {
+  ensureBarcodes();
+
   document.getElementById("adminMembersTable").innerHTML =
     members.map(member => `
       <tr>
@@ -670,13 +1118,22 @@ function renderAdminMembers() {
         <td>${escapeHTML(member.phone || "-")}</td>
 
         <td>
-          <button onclick="editMember('${member.id}')">
+          <span class="barcode-code">${escapeHTML(member.barcode)}</span>
+        </td>
+
+        <td>
+          <button onclick="editMember('${escapeHTML(member.id)}')">
             Edit
           </button>
 
           <button
+            onclick="printMemberCard('${escapeHTML(member.id)}')">
+            Cetak Kartu
+          </button>
+
+          <button
             class="delete"
-            onclick="deleteMember('${member.id}')">
+            onclick="deleteMember('${escapeHTML(member.id)}')">
             Hapus
           </button>
         </td>
@@ -694,15 +1151,24 @@ document.getElementById("memberForm").addEventListener(
     if (!requireLogin()) return;
 
     const id = document.getElementById("memberId").value;
+    const memberId = id || makeId("member");
+
+    const existing = members.find(
+      member => String(member.id) === String(id)
+    );
 
     const memberData = {
-      id: id || makeId("member"),
+      id: memberId,
 
       name: document.getElementById("memberName").value.trim(),
 
       email: document.getElementById("memberEmail").value.trim(),
 
-      phone: document.getElementById("memberPhone").value.trim()
+      phone: document.getElementById("memberPhone").value.trim(),
+
+      barcode: existing
+        ? existing.barcode
+        : createBarcode("OVM", memberId)
     };
 
     if (id) {
@@ -963,7 +1429,7 @@ function renderLoans() {
         <td>
           ${
             loan.status === "Dipinjam"
-              ? `<button onclick="returnBook('${loan.id}')">
+              ? `<button onclick="returnBook('${escapeHTML(loan.id)}')">
                    Kembalikan
                  </button>`
               : "Selesai"
@@ -1088,6 +1554,7 @@ document.getElementById("passwordForm").addEventListener(
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", function() {
+  ensureBarcodes();
 
   renderHome();
 
@@ -1096,5 +1563,4 @@ document.addEventListener("DOMContentLoaded", function() {
   } else {
     showPage("home");
   }
-
 });
