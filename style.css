@@ -458,8 +458,8 @@ th {
 
 td button {
   border: 0;
-  background: var(--seafoam);
-  color: var(--brown-dark);
+  background: var(--yellow);
+  color: #D97706;
   padding: 7px 9px;
   border-radius: 3px;
   margin: 2px;
