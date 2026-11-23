@@ -1,21 +1,24 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Oceanvalle Digital Library">
+  <meta name="description" content="Oceanvalle Digital Library - Explore stories and knowledge.">
   <title>Oceanvalle Library</title>
+
   <link rel="stylesheet" href="./style.css">
+
+  <!-- Library untuk membuat barcode -->
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
 
 <header class="topbar">
-  <a class="brand" href="#" onclick="showPage('home');return false;">
+  <a class="brand" href="#" onclick="showPage('home'); return false;">
     <span class="brand-mark">O</span>
     <span>OCEANVALLE<small>LIBRARY & KNOWLEDGE</small></span>
   </a>
+
   <nav>
     <button onclick="showPage('home')">Home</button>
     <button onclick="showPage('collection')">Collection</button>
@@ -28,7 +31,7 @@
   <!-- HOME -->
   <section id="homePage" class="page">
     <div class="hero">
-      <div>
+      <div class="hero-copy">
         <p class="eyebrow">WELCOME TO OCEANVALLE</p>
         <h1>A world of stories<br>at your fingertips.</h1>
         <p class="hero-desc">
@@ -39,6 +42,7 @@
           Explore Collection →
         </button>
       </div>
+
       <div class="hero-art">
         <div class="sun"></div>
         <div class="book-illustration">
@@ -51,9 +55,18 @@
     </div>
 
     <div class="stats">
-      <div><strong id="homeBookCount">0</strong><span>Book Titles</span></div>
-      <div><strong id="homeMemberCount">0</strong><span>Members</span></div>
-      <div><strong id="homeLoanCount">0</strong><span>Active Loans</span></div>
+      <div>
+        <strong id="homeBookCount">10</strong>
+        <span>Book Titles</span>
+      </div>
+      <div>
+        <strong id="homeMemberCount">0</strong>
+        <span>Members</span>
+      </div>
+      <div>
+        <strong id="homeLoanCount">0</strong>
+        <span>Active Loans</span>
+      </div>
     </div>
 
     <section class="section">
@@ -79,11 +92,15 @@
     </div>
 
     <div class="collection-tools">
-      <input id="searchBook" type="search"
+      <input
+        id="searchBook"
+        type="search"
         placeholder="Cari judul, penulis, atau kategori..."
-        oninput="renderCollection()">
+        oninput="renderCollection()"
+      >
       <span id="collectionCount"></span>
     </div>
+
     <div id="collectionBooks" class="book-grid collection-grid"></div>
   </section>
 
@@ -93,7 +110,10 @@
       <div class="login-decoration">
         <p class="eyebrow">OCEANVALLE STAFF</p>
         <h1>Manage your library.</h1>
-        <p>Kelola katalog buku, anggota, barcode, dan sirkulasi perpustakaan melalui halaman administrator.</p>
+        <p>
+          Kelola katalog buku, anggota, dan sirkulasi perpustakaan
+          melalui halaman administrator.
+        </p>
       </div>
 
       <form id="loginForm" class="panel login-panel">
@@ -104,7 +124,12 @@
         <input id="username" required placeholder="Masukkan username">
 
         <label for="password">Password</label>
-        <input id="password" type="password" required placeholder="Masukkan password">
+        <input
+          id="password"
+          type="password"
+          required
+          placeholder="Masukkan password"
+        >
 
         <button class="primary-btn full-btn" type="submit">Login</button>
         <p class="hint">Login awal: admin / ocean123</p>
@@ -113,7 +138,7 @@
     </div>
   </section>
 
-  <!-- ADMIN -->
+  <!-- ADMIN DASHBOARD -->
   <section id="adminPage" class="page hidden">
     <div class="admin-heading">
       <div>
@@ -124,18 +149,37 @@
     </div>
 
     <div class="admin-stats">
-      <div class="stat-card"><span>Total Judul</span><strong id="statBooks">0</strong></div>
-      <div class="stat-card"><span>Total Anggota</span><strong id="statMembers">0</strong></div>
-      <div class="stat-card"><span>Sedang Dipinjam</span><strong id="statLoans">0</strong></div>
-      <div class="stat-card"><span>Terlambat</span><strong id="statOverdue">0</strong></div>
+      <div class="stat-card">
+        <span>Total Judul</span>
+        <strong id="statBooks">0</strong>
+      </div>
+      <div class="stat-card">
+        <span>Total Anggota</span>
+        <strong id="statMembers">0</strong>
+      </div>
+      <div class="stat-card">
+        <span>Sedang Dipinjam</span>
+        <strong id="statLoans">0</strong>
+      </div>
+      <div class="stat-card">
+        <span>Terlambat</span>
+        <strong id="statOverdue">0</strong>
+      </div>
     </div>
 
     <div class="admin-tabs">
-      <button class="tab-btn active" onclick="showAdminTab('books',this)">Data Buku</button>
-      <button class="tab-btn" onclick="showAdminTab('members',this)">Data Anggota</button>
-      <button class="tab-btn" onclick="showAdminTab('circulation',this)">Sirkulasi</button>
-      <button class="tab-btn" onclick="showAdminTab('catalog',this)">Katalog Buku</button>
-      <button class="tab-btn" onclick="showAdminTab('settings',this)">Pengaturan</button>
+      <button class="tab-btn active" onclick="showAdminTab('books', this)">
+        Data Buku
+      </button>
+      <button class="tab-btn" onclick="showAdminTab('members', this)">
+        Data Anggota
+      </button>
+      <button class="tab-btn" onclick="showAdminTab('circulation', this)">
+        Sirkulasi
+      </button>
+      <button class="tab-btn" onclick="showAdminTab('settings', this)">
+        Pengaturan
+      </button>
     </div>
 
     <!-- DATA BUKU -->
@@ -170,27 +214,29 @@
           <label for="bookStock">Jumlah Eksemplar</label>
           <input id="bookStock" type="number" min="0" value="2" required>
         </div>
-        <div>
-          <label for="bookEbook">URL Ebook / PDF</label>
-          <input id="bookEbook" placeholder="assets/ebooks/nama-buku.pdf">
-        </div>
 
         <div class="form-actions">
           <button class="primary-btn" type="submit">Simpan Buku</button>
-          <button class="outline-btn" type="button" onclick="resetBookForm()">Batal</button>
+          <button class="outline-btn" type="button" onclick="resetBookForm()">
+            Batal
+          </button>
         </div>
       </form>
+
+      <div class="print-toolbar">
+        <button class="primary-btn" onclick="printCatalog()">
+          Cetak Katalog Buku
+        </button>
+      </div>
 
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Kode Buku</th>
               <th>Judul</th>
               <th>Penulis</th>
               <th>Kategori</th>
               <th>Stok</th>
-              <th>Barcode</th>
               <th>Aksi</th>
             </tr>
           </thead>
@@ -199,7 +245,7 @@
       </div>
     </section>
 
-    <!-- ANGGOTA -->
+    <!-- DATA ANGGOTA -->
     <section id="membersTab" class="admin-tab hidden">
       <p class="eyebrow">MEMBERSHIP MANAGEMENT</p>
       <h2>Data Anggota</h2>
@@ -222,7 +268,9 @@
 
         <div class="form-actions">
           <button class="primary-btn" type="submit">Simpan Anggota</button>
-          <button class="outline-btn" type="button" onclick="resetMemberForm()">Batal</button>
+          <button class="outline-btn" type="button" onclick="resetMemberForm()">
+            Batal
+          </button>
         </div>
       </form>
 
@@ -230,11 +278,9 @@
         <table>
           <thead>
             <tr>
-              <th>Nomor Anggota</th>
               <th>Nama</th>
               <th>Email</th>
               <th>Telepon</th>
-              <th>Kartu Anggota</th>
               <th>Aksi</th>
             </tr>
           </thead>
@@ -289,38 +335,6 @@
       </div>
     </section>
 
-    <!-- KATALOG -->
-    <section id="catalogTab" class="admin-tab hidden">
-      <p class="eyebrow">LIBRARY COLLECTION</p>
-      <h2>Katalog Buku</h2>
-      <p class="hint">Daftar lengkap koleksi buku Oceanvalle.</p>
-
-      <div class="catalog-actions">
-        <input id="adminCatalogSearch" type="search"
-          placeholder="Cari judul, penulis, kategori..."
-          oninput="renderAdminCatalog()">
-        <button class="primary-btn" onclick="printCatalog()">Cetak Katalog Buku</button>
-      </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>No.</th>
-              <th>Kode Buku</th>
-              <th>Judul Buku</th>
-              <th>Penulis</th>
-              <th>Kategori</th>
-              <th>Penerbit</th>
-              <th>Tahun</th>
-              <th>Stok</th>
-            </tr>
-          </thead>
-          <tbody id="adminCatalogTable"></tbody>
-        </table>
-      </div>
-    </section>
-
     <!-- PENGATURAN -->
     <section id="settingsTab" class="admin-tab hidden">
       <p class="eyebrow">ACCOUNT SETTINGS</p>
@@ -328,39 +342,86 @@
 
       <div class="panel password-panel">
         <h3>Ganti Password</h3>
-        <p class="hint">Ubah password akun administrator Oceanvalle.</p>
+        <p class="hint">
+          Gunakan fitur ini untuk mengubah password akun administrator Oceanvalle.
+        </p>
 
         <form id="passwordForm">
           <label for="oldPassword">Password Lama</label>
-          <input id="oldPassword" type="password" required>
+          <input id="oldPassword" type="password" required
+            placeholder="Masukkan password lama">
 
           <label for="newPassword">Password Baru</label>
-          <input id="newPassword" type="password" minlength="6" required>
+          <input id="newPassword" type="password" required minlength="6"
+            placeholder="Minimal 6 karakter">
 
           <label for="confirmPassword">Konfirmasi Password Baru</label>
-          <input id="confirmPassword" type="password" minlength="6" required>
+          <input id="confirmPassword" type="password" required minlength="6"
+            placeholder="Ulangi password baru">
 
           <button class="primary-btn" type="submit">Simpan Password Baru</button>
           <p id="passwordMessage" class="message"></p>
         </form>
       </div>
 
+      <!-- TAMBAHAN: KELOLA AKUN ADMIN -->
+      <div class="panel password-panel">
+        <h3>Tambah Admin Baru</h3>
+        <p class="hint">
+          Buat akun staf baru agar dapat login ke dashboard Oceanvalle.
+        </p>
+
+        <form id="adminForm">
+          <label for="newAdminUsername">Username Admin Baru</label>
+          <input id="newAdminUsername" required minlength="3"
+            placeholder="Masukkan username">
+
+          <label for="newAdminPassword">Password Admin Baru</label>
+          <input id="newAdminPassword" type="password" required minlength="6"
+            placeholder="Minimal 6 karakter">
+
+          <label for="confirmAdminPassword">Konfirmasi Password</label>
+          <input id="confirmAdminPassword" type="password" required minlength="6"
+            placeholder="Ulangi password">
+
+          <button class="primary-btn" type="submit">Tambah Admin</button>
+          <p id="adminMessage" class="message"></p>
+        </form>
+
+        <h3 class="admin-list-title">Daftar Akun Admin</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="adminAccountsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="panel account-info">
         <h3>Informasi Akun</h3>
-        <p>Username administrator: <strong>admin</strong></p>
-        <p class="hint">Username demo belum dapat diubah melalui website.</p>
+        <p>Username administrator utama: <strong>admin</strong></p>
+        <p class="hint">
+          Username admin utama tidak dapat dihapus.
+        </p>
       </div>
     </section>
-
   </section>
 </main>
 
 <footer>
   <div class="brand footer-brand">
     <span class="brand-mark">O</span>
-    <span>OCEANVALLE<small>LIBRARY & KNOWLEDGE</small></span>
+    <span>
+      OCEANVALLE
+      <small>LIBRARY & KNOWLEDGE</small>
+    </span>
   </div>
-  <p>© 2026 Oceanvalle Library. Read · Learn · Grow.</p>
+  <p>©️ 2026 Oceanvalle Library. Read · Learn · Grow.</p>
 </footer>
 
 <script src="./app.js" defer></script>
